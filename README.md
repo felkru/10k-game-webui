@@ -39,6 +39,6 @@ A web-based implementation of the dice game **10.000** (Farkle), built with Reac
 
 To implement your own agent:
 
-1.  Review the [OpenAPI spec](docs/custom-agent-api.json) for the expected request/response format.
+1.  Review the [OpenAPI spec](https://github.com/felkru/10k-game-webui/blob/main/docs/custom-agent-api.json) for the expected request/response format.
 2.  Your server should expose a `POST /move` (or similar, you provide the full URI) endpoint.
 3.  The engine will send the full `GameState` and expects an `AgentMove` response.

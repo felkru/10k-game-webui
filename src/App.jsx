@@ -464,6 +464,7 @@ export default function ZehntausendGame() {
               <li>Expected input: <code>GameState</code> JSON.</li>
               <li>Expected output: <code>AgentMove</code> JSON (e.g. <code>{"{ \"action\": \"ROLL\", \"keepDiceIds\": [0, 2] }"}</code>).</li>
               <li>Detailed documentation is available in <code>README.md</code> and <code>web-ui/docs/custom-agent-api.json</code>.</li>
+              <li>If you want to use an AI Agent to code a compatible API for AI experiments, paste <a href="https://github.com/felkru/10k-game-webui/blob/main/docs/custom-agent-api.json">this</a> into your agent/preferred LLM.</li>
             </ul>
           </div>
           <button 
