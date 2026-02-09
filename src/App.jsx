@@ -114,11 +114,21 @@ export default function ZehntausendGame() {
   const [isProcessingTurn, setIsProcessingTurn] = useState(false); // Lock UI processing
   const [aiStatusMessage, setAiStatusMessage] = useState(null); // For AI feedback (retries, thinking)
   const [showUriModal, setShowUriModal] = useState(false);
+  const [showGeminiModal, setShowGeminiModal] = useState(false);
   const [currentUriPlayerIndex, setCurrentUriPlayerIndex] = useState(null);
   const [tempUri, setTempUri] = useState('');
+  const [geminiApiKey, setGeminiApiKey] = useState(Cookies.get('gemini_api_key') || '');
+  const [tempGeminiKey, setTempGeminiKey] = useState(geminiApiKey);
 
   // Sync function
   const refresh = () => setGameState(engineRef.current.getSnapshot());
+
+  // Initialize Gemini agent if key exists
+  useEffect(() => {
+    if (geminiApiKey) {
+        agents.gemini.setApiKey(geminiApiKey);
+    }
+  }, [geminiApiKey]);
 
   const handleRoll = () => {
     engineRef.current.roll();
@@ -164,6 +174,12 @@ export default function ZehntausendGame() {
           setShowUriModal(true);
       }
 
+      if (type === 'gemini') {
+          const savedKey = Cookies.get('gemini_api_key') || '';
+          setTempGeminiKey(savedKey);
+          setShowGeminiModal(true);
+      }
+
       refresh();
   };
 
@@ -173,6 +189,12 @@ export default function ZehntausendGame() {
           setShowUriModal(false);
           setCurrentUriPlayerIndex(null);
       }
+  };
+
+  const saveGeminiKey = () => {
+      Cookies.set('gemini_api_key', tempGeminiKey, { expires: 365 });
+      setGeminiApiKey(tempGeminiKey);
+      setShowGeminiModal(false);
   };
 
   const gameStarted = gameState.players.some(p => p.score > 0) || gameState.currentKeepScore > 0 || gameState.turnScore > 0;
@@ -472,6 +494,46 @@ export default function ZehntausendGame() {
             className="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-3 rounded-xl shadow-lg transition-all"
           >
             Save Configuration
+          </button>
+        </div>
+      </Modal>
+
+      {/* GEMINI API KEY MODAL */}
+      <Modal 
+        isOpen={showGeminiModal} 
+        onClose={() => setShowGeminiModal(false)} 
+        title="Gemini AI Configuration"
+      >
+        <div className="space-y-4">
+          <p className="text-sm">
+            To use the Gemini AI agent, you need to provide your own Google AI Studio API Key. 
+            This allows the game to run AI requests directly using your account.
+          </p>
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase text-slate-500">Google AI Studio API Key</label>
+            <input 
+              type="password" 
+              value={tempGeminiKey}
+              onChange={(e) => setTempGeminiKey(e.target.value)}
+              placeholder="Enter your API key here..."
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+            />
+          </div>
+          <div className="bg-slate-800/50 p-4 rounded-lg border border-slate-700">
+            <h4 className="text-xs font-bold uppercase text-yellow-500 mb-2">How to get a Key</h4>
+            <ol className="text-xs space-y-2 text-slate-400 list-decimal pl-4">
+              <li>Go to <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:underline">aistudio.google.com</a></li>
+              <li>Sign in with your Google Account.</li>
+              <li>Click on <strong>"Get API key"</strong> in the sidebar.</li>
+              <li>Create a new API key in a new project.</li>
+              <li>If you hit rate limits, ensure you have a <strong>paid billing plan</strong> set up in the Google Cloud Console for your project.</li>
+            </ol>
+          </div>
+          <button 
+            onClick={saveGeminiKey}
+            className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl shadow-lg transition-all"
+          >
+            Save API Key
           </button>
         </div>
       </Modal>

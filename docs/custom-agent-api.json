@@ -38,6 +38,16 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Illegal move or invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -45,6 +55,18 @@
   },
   "components": {
     "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string", "description": "Description of the error" },
+          "validMoves": { 
+             "type": "array", 
+             "items": { "type": "string" },
+             "description": "Optional list of valid move descriptions or tips"
+          }
+        },
+        "required": ["error"]
+      },
       "DieState": {
         "type": "string",
         "enum": ["rolled", "kept", "banked"]

@@ -84,6 +84,17 @@ export class CustomAgent implements Agent {
                         return callApiWithRetry(lastError, networkRetries - 1, legalRetries, Math.min(delay * 2, 30000));
                     }
 
+                    if (response.status === 400) {
+                        try {
+                            const errorData = await response.json();
+                            if (errorData && errorData.error) {
+                                throw new Error(`API Error (400): ${errorData.error}${errorData.validMoves ? '. Suggestions: ' + errorData.validMoves.join(', ') : ''}`);
+                            }
+                        } catch (e) {
+                            // Fallback if not JSON or missing 'error'
+                        }
+                    }
+
                     const errorText = await response.text();
                     throw new Error(`API Error (${response.status}): ${errorText || response.statusText}`);
                 }

@@ -4,20 +4,27 @@ import { Agent, AgentMove, GameState } from "./types";
 import { FarkleEngine } from "../farkle-engine";
 import rulesMd from "../FarkleRules.md?raw";
 
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const MODEL_NAME = "gemini-3-flash-preview";
 
 export class GeminiAgent implements Agent {
-    private client: GoogleGenAI;
+    private client: GoogleGenAI | null = null;
+    private apiKey: string | null = null;
 
     constructor() {
-        if (!API_KEY) {
-            console.error("VITE_GEMINI_API_KEY is missing!");
-        }
-        this.client = new GoogleGenAI({ apiKey: API_KEY });
+        // Client will be initialized via setApiKey
+    }
+
+    setApiKey(key: string) {
+        if (this.apiKey === key && this.client) return;
+        this.apiKey = key;
+        this.client = new GoogleGenAI({ apiKey: key });
     }
 
     async getNextMove(engine: FarkleEngine, onProgress?: (message: string) => void): Promise<AgentMove> {
+        const client = this.client;
+        if (!client) {
+            throw new Error("Gemini API Key missing. Please click the Gemini button to configure.");
+        }
         // Construct Game State JSON
         const gameState: GameState = {
             message: engine.message,
@@ -70,7 +77,7 @@ export class GeminiAgent implements Agent {
 
         const generateWithRetry = async (retries = MAX_RETRIES, delay = BASE_DELAY): Promise<any> => {
             try {
-                const response = await this.client.models.generateContent({
+                const response = await client.models.generateContent({
                     model: MODEL_NAME,
                     config: {
                         responseMimeType: "application/json",
