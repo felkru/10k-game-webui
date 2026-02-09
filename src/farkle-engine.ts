@@ -205,6 +205,55 @@ export class FarkleEngine {
         this.passTurn();
     }
     
+    // --- VALIDATION ---
+    validateMove(keepDiceIds: number[], action: 'ROLL' | 'BANK'): { valid: boolean; error?: string } {
+        // 1. Validate dice to keep
+        for (const id of keepDiceIds) {
+            const die = this.dice.find(d => d.id === id);
+            if (!die) return { valid: false, error: `Die with ID ${id} not found.` };
+            if (die.state === 'banked') return { valid: false, error: `Die with ID ${id} is already banked.` };
+            if (die.state === 'kept') continue; // Already kept is fine
+
+            // If it's currently 'rolled', check if it's scoring
+            const val = die.value;
+            const rolledOfVal = this.dice.filter(d => d.value === val && d.state === 'rolled');
+            const keptOfVal = this.dice.filter(d => d.value === val && d.state === 'kept');
+            
+            if (val !== 1 && val !== 5 && (rolledOfVal.length + keptOfVal.length < 3)) {
+                return { valid: false, error: `Die with value ${val} is not a scoring die.` };
+            }
+        }
+
+        // Calculate potential score if these dice were kept
+        const diceAfterKeeps = this.dice.map(d => {
+            if (keepDiceIds.includes(d.id)) return { ...d, state: 'kept' as DieState };
+            return d;
+        });
+        const { score: newKeepScore } = this.evaluateScoring(diceAfterKeeps.filter(d => d.state === 'kept'));
+        const totalTurnScore = this.turnScore + newKeepScore;
+
+        if (action === 'BANK') {
+            if (totalTurnScore === 0) {
+                return { valid: false, error: "Cannot bank with 0 score." };
+            }
+        } else if (action === 'ROLL') {
+            // Must have kept at least one NEW scoring die this turn, 
+            // OR all dice must be banked/kept (Hot Hand)
+            const newlyKept = keepDiceIds.filter(id => {
+                const d = this.dice.find(x => x.id === id);
+                return d && d.state === 'rolled';
+            });
+
+            const allDiceScoring = diceAfterKeeps.every(d => d.state !== 'rolled');
+
+            if (newlyKept.length === 0 && !allDiceScoring) {
+                return { valid: false, error: "Must keep at least one new scoring die before rolling again." };
+            }
+        }
+
+        return { valid: true };
+    }
+
     passTurn() {
         this.turnScore = 0;
         this.currentKeepScore = 0;

@@ -20,6 +20,7 @@ export interface GameState {
     status: string;
     turnScore: number;
     currentKeepScore: number;
+    lastError?: string;
     dice: {
         id: number;
         value: number;

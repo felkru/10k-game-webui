@@ -74,6 +74,7 @@
           "status": { "type": "string" },
           "turnScore": { "type": "integer" },
           "currentKeepScore": { "type": "integer" },
+          "lastError": { "type": "string", "description": "If the previous move was invalid, this field provides the error message." },
           "dice": {
             "type": "array",
             "items": { "$ref": "#/components/schemas/Die" }

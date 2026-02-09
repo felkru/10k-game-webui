@@ -103,9 +103,7 @@ export class GeminiAgent implements Agent {
                     }
 
                     await new Promise(r => setTimeout(r, delay));
-                    // Cap delay at 30 seconds to avoid overly long waits? Or keep doubling?
-                    // Let's cap at 16s to be reasonable.
-                    const nextDelay = Math.min(delay * 2, 16000); 
+                    const nextDelay = Math.min(delay * 2, 1000000); 
                     return generateWithRetry(retries - 1, nextDelay);
                 }
                 throw error;
