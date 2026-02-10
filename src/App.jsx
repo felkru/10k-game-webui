@@ -236,16 +236,23 @@ export default function ZehntausendGame() {
                 await new Promise(r => setTimeout(r, 1000));
                 
                 // Execute Keeps
-                if (move.keepDiceIds && move.keepDiceIds.length > 0) {
-                     move.keepDiceIds.forEach(id => {
-                        // Only toggle if not already kept (to avoid toggle off)
-                        const d = engineRef.current.dice.find(x => x.id === id);
-                        if (d && d.state !== 'kept') {
-                            engineRef.current.toggleKeep(id);
-                        }
-                     });
-                     refresh();
-                }
+                // Execute Keeps - Full synchronization
+                const targetKeepIds = move.keepDiceIds || [];
+                let stateChanged = false;
+                
+                engineRef.current.dice.forEach(d => {
+                    if (d.state === 'banked') return;
+                    
+                    const shouldBeKept = targetKeepIds.includes(d.id);
+                    const isCurrentlyKept = d.state === 'kept';
+                    
+                    if (shouldBeKept !== isCurrentlyKept) {
+                        engineRef.current.toggleKeep(d.id);
+                        stateChanged = true;
+                    }
+                });
+
+                if (stateChanged) refresh();
                  
                 // Explain? (Could add to UI message)
                 if (move.explanation) {

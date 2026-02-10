@@ -22,12 +22,11 @@ export class CustomAgent implements Agent {
 
         const MAX_RETRIES = 5;
         const BASE_DELAY = 1000;
-        const MAX_LEGAL_RETRIES = 3;
 
         const callApiWithRetry = async (
             lastError?: string, 
             networkRetries = MAX_RETRIES, 
-            legalRetries = MAX_LEGAL_RETRIES, 
+            legalAttempt = 1, 
             delay = BASE_DELAY
         ): Promise<AgentMove> => {
             // Construct Game State
@@ -51,7 +50,6 @@ export class CustomAgent implements Agent {
 
             if (onProgress) {
                 const attempt = MAX_RETRIES - networkRetries + 1;
-                const legalAttempt = MAX_LEGAL_RETRIES - legalRetries + 1;
                 let msg = `Calling Custom API: ${uri}...`;
                 if (lastError) msg = `Move invalid: ${lastError}. Retrying (Legal Attempt ${legalAttempt})...`;
                 if (networkRetries < MAX_RETRIES) msg = `Network issue. Retrying in ${delay/1000}s... (Attempt ${attempt})`;
@@ -81,7 +79,7 @@ export class CustomAgent implements Agent {
 
                     if (isTransient && networkRetries > 0) {
                         await new Promise(r => setTimeout(r, delay));
-                        return callApiWithRetry(lastError, networkRetries - 1, legalRetries, Math.min(delay * 2, 30000));
+                        return callApiWithRetry(lastError, networkRetries - 1, legalAttempt, Math.min(delay * 2, 30000));
                     }
 
                     if (response.status === 400) {
@@ -108,15 +106,11 @@ export class CustomAgent implements Agent {
 
                 // Legality check
                 const validation = engine.validateMove(move.keepDiceIds, move.action);
-                if (!validation.valid && legalRetries > 0) {
-                    console.warn(`Custom Agent: Legal validation failed: ${validation.error}. Retrying...`);
-                    // Delay slightly before legal retry to avoid tight loops? 
-                    // Not strictly necessary as it's a new API call, but let's keep it responsive.
-                    return callApiWithRetry(validation.error, MAX_RETRIES, legalRetries - 1, BASE_DELAY);
-                }
-
                 if (!validation.valid) {
-                    throw new Error(`API returned invalid move after retries: ${validation.error}`);
+                    console.warn(`Custom Agent: Legal validation failed: ${validation.error}. Retrying... (Attempt ${legalAttempt})`);
+                    // Use a fixed delay for legal retries, and don't reset networkRetries
+                    await new Promise(r => setTimeout(r, BASE_DELAY));
+                    return callApiWithRetry(validation.error, networkRetries, legalAttempt + 1, BASE_DELAY);
                 }
 
                 return move;
@@ -124,7 +118,7 @@ export class CustomAgent implements Agent {
                 if (error.name === 'AbortError') {
                     if (networkRetries > 0) {
                         await new Promise(r => setTimeout(r, delay));
-                        return callApiWithRetry(lastError, networkRetries - 1, legalRetries, Math.min(delay * 2, 30000));
+                        return callApiWithRetry(lastError, networkRetries - 1, legalAttempt, Math.min(delay * 2, 30000));
                     }
                     throw new Error("API Request timed out after retries.");
                 }
@@ -132,7 +126,7 @@ export class CustomAgent implements Agent {
                 if (networkRetries > 0 && !(error instanceof SyntaxError)) {
                     // Possible network issue
                     await new Promise(r => setTimeout(r, delay));
-                    return callApiWithRetry(lastError, networkRetries - 1, legalRetries, Math.min(delay * 2, 30000));
+                    return callApiWithRetry(lastError, networkRetries - 1, legalAttempt, Math.min(delay * 2, 30000));
                 }
 
                 console.error("Custom Agent Error:", error);
